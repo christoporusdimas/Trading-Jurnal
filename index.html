@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Become Rich– Trading Journal</title>
+  <meta name="description"
+    content="Jurnal trading backtest interaktif untuk XAUUSD dengan statistik, grafik, dan manajemen trade." />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <style>
+    :root {
+      --bg-primary: #0a0d14;
+      --bg-secondary: #0f1320;
+      --bg-card: #141927;
+      --bg-card-hover: #1a2035;
+      --border: #1e2a42;
+      --accent-green: #00e676;
+      --accent-green-dim: rgba(0, 230, 118, 0.12);
+      --accent-red: #ff3d71;
+      --accent-red-dim: rgba(255, 61, 113, 0.12);
+      --accent-blue: #2979ff;
+      --accent-blue-dim: rgba(41, 121, 255, 0.12);
+      --accent-gold: #ffd600;
+      --accent-gold-dim: rgba(255, 214, 0, 0.10);
+      --accent-purple: #aa00ff;
+      --text-primary: #e8eaf6;
+      --text-secondary: #7986cb;
+      --text-muted: #3d4f7c;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+      --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Background grid ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(41, 121, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(41, 121, 255, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Glow orbs ── */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(100px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.18;
+    }
+
+    .orb-1 {
+      width: 500px;
+      height: 500px;
+      background: var(--accent-blue);
+      top: -150px;
+      left: -150px;
+    }
+
+    .orb-2 {
+      width: 400px;
+      height: 400px;
+      background: var(--accent-purple);
+      bottom: -100px;
+      right: -100px;
+    }
+
+    .orb-3 {
+      width: 300px;
+      height: 300px;
+      background: var(--accent-gold);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0.07;
+    }
+
+    /* ── Layout ── */
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 24px 60px;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 28px 0 32px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 40px;
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-icon {
+      width: 46px;
+      height: 46px;
+      background: linear-gradient(135deg, var(--accent-gold), var(--accent-blue));
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      box-shadow: 0 0 20px rgba(255, 214, 0, 0.35);
+    }
+
+    .logo-text h1 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-text span {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      font-weight: 400;
+    }
+
+    .header-badge {
+      background: var(--accent-gold-dim);
+      border: 1px solid rgba(255, 214, 0, 0.3);
+      color: var(--accent-gold);
+      padding: 6px 14px;
+      border-radius: 30px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Stat Cards ── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 36px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      position: relative;
+      overflow: hidden;
+      transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+      cursor: default;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 30px rgba(41, 121, 255, 0.15);
+    }
+
+    .stat-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+
+    .stat-card.green::after {
+      background: linear-gradient(90deg, var(--accent-green), transparent);
+    }
+
+    .stat-card.red::after {
+      background: linear-gradient(90deg, var(--accent-red), transparent);
+    }
+
+    .stat-card.blue::after {
+      background: linear-gradient(90deg, var(--accent-blue), transparent);
+    }
+
+    .stat-card.gold::after {
+      background: linear-gradient(90deg, var(--accent-gold), transparent);
+    }
+
+    .stat-card.purple::after {
+      background: linear-gradient(90deg, var(--accent-purple), transparent);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+      line-height: 1;
+    }
+
+    .stat-card.green .stat-value {
+      color: var(--accent-green);
+    }
+
+    .stat-card.red .stat-value {
+      color: var(--accent-red);
+    }
+
+    .stat-card.blue .stat-value {
+      color: var(--accent-blue);
+    }
+
+    .stat-card.gold .stat-value {
+      color: var(--accent-gold);
+    }
+
+    .stat-card.purple .stat-value {
+      color: var(--accent-purple);
+    }
+
+    .stat-sub {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .stat-icon {
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 2.2rem;
+      opacity: 0.15;
+    }
+
+    /* ── Section title ── */
+    .section-title {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .section-title::before {
+      content: '';
+      display: block;
+      width: 4px;
+      height: 20px;
+      background: linear-gradient(to bottom, var(--accent-blue), var(--accent-purple));
+      border-radius: 4px;
+    }
+
+    /* ── Charts ── */
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 36px;
+    }
+
+    @media (max-width: 1000px) {
+      .chart-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .chart-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .chart-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      transition: box-shadow var(--transition);
+    }
+
+    .chart-card:hover {
+      box-shadow: var(--shadow);
+    }
+
+    .chart-card h3 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 18px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 220px;
+    }
+
+    /* ── Form ── */
+    .form-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 30px;
+      margin-bottom: 36px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 8px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.88rem;
+      transition: border-color var(--transition), box-shadow var(--transition);
+      outline: none;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 3px rgba(41, 121, 255, 0.15);
+    }
+
+    .form-group select option {
+      background: var(--bg-card);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 13px 28px;
+      border-radius: var(--radius-sm);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: all var(--transition);
+      letter-spacing: 0.5px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-blue), #651fff);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(41, 121, 255, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(41, 121, 255, 0.5);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent-blue);
+      color: var(--text-primary);
+    }
+
+    .btn-danger {
+      background: var(--accent-red-dim);
+      border: 1px solid rgba(255, 61, 113, 0.3);
+      color: var(--accent-red);
+      padding: 6px 14px;
+      font-size: 0.78rem;
+      border-radius: 6px;
+    }
+
+    .btn-danger:hover {
+      background: rgba(255, 61, 113, 0.25);
+    }
+
+    /* ── Table ── */
+    .table-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 36px;
+    }
+
+    .table-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .table-header h3 {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .trade-count-badge {
+      background: var(--accent-blue-dim);
+      border: 1px solid rgba(41, 121, 255, 0.3);
+      color: var(--accent-blue);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead tr {
+      background: var(--bg-secondary);
+    }
+
+    th,
+    td {
+      padding: 14px 16px;
+      text-align: left;
+      font-size: 0.84rem;
+      white-space: nowrap;
+    }
+
+    th {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-secondary);
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background var(--transition);
+    }
+
+    tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    tbody tr:hover {
+      background: var(--bg-card-hover);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-win {
+      background: var(--accent-green-dim);
+      color: var(--accent-green);
+      border: 1px solid rgba(0, 230, 118, 0.3);
+    }
+
+    .badge-loss {
+      background: var(--accent-red-dim);
+      color: var(--accent-red);
+      border: 1px solid rgba(255, 61, 113, 0.3);
+    }
+
+    .badge-buy {
+      background: var(--accent-blue-dim);
+      color: var(--accent-blue);
+      border: 1px solid rgba(41, 121, 255, 0.3);
+    }
+
+    .badge-sell {
+      background: var(--accent-red-dim);
+      color: #ff8a65;
+      border: 1px solid rgba(255, 138, 101, 0.3);
+    }
+
+    .badge-empty {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    .profit-pos {
+      color: var(--accent-green);
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+    }
+
+    .profit-neg {
+      color: var(--accent-red);
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+    }
+
+    td.muted {
+      color: var(--text-muted);
+    }
+
+    /* ── Progress bar ── */
+    .winrate-bar-wrap {
+      background: var(--bg-secondary);
+      border-radius: 30px;
+      height: 6px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .winrate-bar {
+      height: 100%;
+      border-radius: 30px;
+      background: linear-gradient(90deg, var(--accent-green), #00bfa5);
+      transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background: var(--bg-card);
+      border: 1px solid var(--accent-green);
+      color: var(--accent-green);
+      padding: 14px 22px;
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      font-weight: 600;
+      box-shadow: 0 8px 32px rgba(0, 230, 118, 0.2);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
+      transition: all 0.3s ease;
+      z-index: 9999;
+    }
+
+    #toast.show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+
+    /* ── Empty row placeholder ── */
+    .empty-row td {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* ── Konfirmasi Checkbox Group ── */
+    .konfirmasi-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .konfirmasi-group label {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 13px;
+      cursor: pointer;
+      font-size: 0.82rem !important;
+      font-weight: 500 !important;
+      color: var(--text-secondary) !important;
+      text-transform: none !important;
+      letter-spacing: 0 !important;
+      transition: all var(--transition);
+      user-select: none;
+    }
+
+    .konfirmasi-group input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      accent-color: var(--accent-blue);
+      cursor: pointer;
+      flex-shrink: 0;
+      background: transparent;
+      border-radius: 4px;
+      padding: 0;
+      box-shadow: none;
+    }
+
+    .konfirmasi-group input[type="checkbox"]:checked+span {
+      color: var(--text-primary);
+    }
+
+    .konfirmasi-group label:has(input:checked) {
+      border-color: var(--accent-blue);
+      background: var(--accent-blue-dim);
+      color: var(--text-primary) !important;
+      box-shadow: 0 0 0 2px rgba(41, 121, 255, 0.15);
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-primary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+
+    /* ── Animations ── */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(24px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .fade-in {
+      animation: fadeInUp 0.5s ease both;
+    }
+
+    .delay-1 {
+      animation-delay: 0.1s;
+    }
+
+    .delay-2 {
+      animation-delay: 0.2s;
+    }
+
+    .delay-3 {
+      animation-delay: 0.3s;
+    }
+
+    .delay-4 {
+      animation-delay: 0.4s;
+    }
+
+    @media (max-width: 640px) {
+      header {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+      }
+
+      .stat-value {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Background -->
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <div class="wrapper">
+
+    <!-- ── Header ── -->
+    <header class="fade-in">
+      <div class="logo-area">
+        <div class="logo-icon">📈</div>
+        <div class="logo-text">
+          <h1>Become Rich</h1>
+          <span>Trading Journal &amp; Analytics Dashboard</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ── Stat Cards ── -->
+    <div class="section-title fade-in">Ringkasan Performa</div>
+    <div class="stat-grid">
+      <div class="stat-card gold fade-in delay-1">
+        <div class="stat-label">Balance</div>
+        <div class="stat-value" id="stat-balance">$32.00</div>
+        <div class="stat-sub">Modal awal: <span id="stat-modal">$30.00</span></div>
+        <div class="stat-icon">💰</div>
+      </div>
+      <div class="stat-card green fade-in delay-1">
+        <div class="stat-label">Total Profit/Loss</div>
+        <div class="stat-value" id="stat-pnl">+$2.00</div>
+        <div class="stat-sub" id="stat-pnl-pct">+6.67% dari modal</div>
+        <div class="stat-icon">📊</div>
+      </div>
+      <div class="stat-card blue fade-in delay-2">
+        <div class="stat-label">Total Entry</div>
+        <div class="stat-value" id="stat-entry">4</div>
+        <div class="stat-sub" id="stat-remaining">dari 50 rencana entry</div>
+        <div class="stat-icon">📝</div>
+      </div>
+      <div class="stat-card green fade-in delay-2">
+        <div class="stat-label">Total Win</div>
+        <div class="stat-value" id="stat-win">3</div>
+        <div class="stat-sub">Trade berhasil</div>
+        <div class="stat-icon">✅</div>
+      </div>
+      <div class="stat-card red fade-in delay-3">
+        <div class="stat-label">Total Loss</div>
+        <div class="stat-value" id="stat-loss">1</div>
+        <div class="stat-sub">Trade gagal</div>
+        <div class="stat-icon">❌</div>
+      </div>
+      <div class="stat-card purple fade-in delay-3">
+        <div class="stat-label">Winrate</div>
+        <div class="stat-value" id="stat-winrate">75%</div>
+        <div class="winrate-bar-wrap">
+          <div class="winrate-bar" id="winrate-bar" style="width:75%"></div>
+        </div>
+        <div class="stat-icon">🎯</div>
+      </div>
+    </div>
+
+    <!-- ── Charts ── -->
+    <div class="section-title fade-in">Grafik &amp; Analitik</div>
+    <div class="chart-grid fade-in delay-1">
+      <div class="chart-card">
+        <h3>📈 Kurva Balance</h3>
+        <div class="chart-wrap"><canvas id="balanceChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>🥧 Win vs Loss</h3>
+        <div class="chart-wrap"><canvas id="winlossChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>💹 Profit per Trade</h3>
+        <div class="chart-wrap"><canvas id="profitChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ── Add Trade Form ── -->
+    <div class="section-title fade-in">Tambah Trade Baru</div>
+    <div class="form-card fade-in delay-1">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Tanggal</label>
+          <input type="date" id="f-date" />
+        </div>
+        <div class="form-group">
+          <label>Pair</label>
+          <select id="f-pair">
+            <option value="XAUUSD">XAUUSD</option>
+            <option value="EURUSD">EURUSD</option>
+            <option value="GBPUSD">GBPUSD</option>
+            <option value="USDJPY">USDJPY</option>
+            <option value="BTCUSD">BTCUSD</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Buy / Sell</label>
+          <select id="f-direction">
+            <option value="Buy">Buy</option>
+            <option value="Sell">Sell</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Win / Loss</label>
+          <select id="f-result">
+            <option value="Win">Win</option>
+            <option value="Loss">Loss</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Profit / Loss ($)</label>
+          <input type="number" id="f-pnl" step="0.01" placeholder="e.g. 1.50 atau -0.30" />
+        </div>
+        <div class="form-group" style="grid-column: span 2;">
+          <label>Konfirmasi</label>
+          <div class="konfirmasi-group" id="konfirmasi-group">
+            <label><input type="checkbox" value="S n R" /><span>📊 S n R</span></label>
+            <label><input type="checkbox" value="Fibonacci" /><span>🌀 Fibonacci</span></label>
+            <label><input type="checkbox" value="EMA" /><span>📉 EMA</span></label>
+            <label><input type="checkbox" value="Pola Candle" /><span>🕯️ Pola Candle</span></label>
+            <label><input type="checkbox" value="SMC" /><span>🧠 SMC</span></label>
+            <label><input type="checkbox" value="Order Block" /><span>📦 Order Block</span></label>
+            <label><input type="checkbox" value="Break of Structure" /><span>🔓 BoS</span></label>
+            <label><input type="checkbox" value="Fair Value Gap" /><span>🕳️ FVG</span></label>
+            <label><input type="checkbox" value="Trendline" /><span>📐 Trendline</span></label>
+            <label><input type="checkbox" value="Volume" /><span>📢 Volume</span></label>
+            <label><input type="checkbox" value="RSI" /><span>⚡ RSI</span></label>
+            <label><input type="checkbox" value="MACD" /><span>〽️ MACD</span></label>
+          </div>
+        </div>
+        <div class="form-group" style="grid-column: span 2;">
+          <label>Trading Plan / Catatan</label>
+          <input type="text" id="f-notes" placeholder="Catatan strategi atau alasan trade..." />
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="addTrade()">➕ Tambah Trade</button>
+        <button class="btn btn-secondary" onclick="resetForm()">🔄 Reset Form</button>
+      </div>
+    </div>
+
+    <!-- ── Trade Table ── -->
+    <div class="section-title fade-in">Riwayat Trade</div>
+    <div class="table-card fade-in delay-1">
+      <div class="table-header">
+        <h3>Daftar Trade</h3>
+        <span class="trade-count-badge" id="trade-count-badge">4 / 50 Entry</span>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Tanggal</th>
+              <th>Pair</th>
+              <th>Arah</th>
+              <th>Hasil</th>
+              <th>Konfirmasi</th>
+              <th>P/L</th>
+              <th>Balance</th>
+              <th>Catatan</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="trade-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /wrapper -->
+
+  <div id="toast"></div>
+
+  <script>
+    // ─── State ───────────────────────────────────────────────────────────────────
+    const MODAL = 30.00;
+    const MAX_ENTRY = 50;
+
+    let trades = JSON.parse(localStorage.getItem('trades_v2')) || [
+      { id: 1, date: '', pair: 'XAUUSD', direction: 'Buy', result: 'Win', konfirmasi: 'S n R, Fibbo, EMA', pnl: 0.90, notes: '' },
+      { id: 2, date: '', pair: 'XAUUSD', direction: 'Sell', result: 'Win', konfirmasi: 'Pola Candle, SMC', pnl: 1.00, notes: '' },
+      { id: 3, date: '', pair: '', direction: '', result: 'Loss', konfirmasi: '', pnl: -0.30, notes: '' },
+      { id: 4, date: '', pair: '', direction: '', result: 'Win', konfirmasi: '', pnl: 0.40, notes: '' },
+    ];
+    let nextId = trades.length ? Math.max(...trades.map(t => t.id)) + 1 : 1;
+
+    function save() { localStorage.setItem('trades_v2', JSON.stringify(trades)); }
+
+    // ─── Compute stats ────────────────────────────────────────────────────────────
+    function calcBalance() {
+      let b = MODAL;
+      return trades.map(t => { b = +(b + t.pnl).toFixed(2); return b; });
+    }
+
+    function getStats() {
+      const balances = calcBalance();
+      const balance = balances.length ? balances[balances.length - 1] : MODAL;
+      const totalPnL = +(balance - MODAL).toFixed(2);
+      const wins = trades.filter(t => t.result === 'Win').length;
+      const losses = trades.filter(t => t.result === 'Loss').length;
+      const winrate = trades.length ? Math.round((wins / trades.length) * 100) : 0;
+      return { balance, totalPnL, wins, losses, winrate, balances };
+    }
+
+    // ─── Render stats ─────────────────────────────────────────────────────────────
+    function renderStats() {
+      const s = getStats();
+      const pnlSign = s.totalPnL >= 0 ? '+' : '';
+      const pnlPct = ((s.totalPnL / MODAL) * 100).toFixed(2);
+
+      document.getElementById('stat-balance').textContent = `$${s.balance.toFixed(2)}`;
+      document.getElementById('stat-pnl').textContent = `${pnlSign}$${s.totalPnL.toFixed(2)}`;
+      document.getElementById('stat-pnl-pct').textContent = `${pnlSign}${pnlPct}% dari modal`;
+      document.getElementById('stat-pnl').style.color = s.totalPnL >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+      document.getElementById('stat-entry').textContent = trades.length;
+      document.getElementById('stat-remaining').textContent = `dari ${MAX_ENTRY} rencana entry`;
+      document.getElementById('stat-win').textContent = s.wins;
+      document.getElementById('stat-loss').textContent = s.losses;
+      document.getElementById('stat-winrate').textContent = `${s.winrate}%`;
+      document.getElementById('winrate-bar').style.width = `${s.winrate}%`;
+      document.getElementById('trade-count-badge').textContent = `${trades.length} / ${MAX_ENTRY} Entry`;
+    }
+
+    // ─── Render table ─────────────────────────────────────────────────────────────
+    function renderTable() {
+      const balances = calcBalance();
+      const tbody = document.getElementById('trade-tbody');
+      tbody.innerHTML = '';
+
+      trades.forEach((t, i) => {
+        const pnlTxt = (t.pnl >= 0 ? '+' : '') + '$' + Math.abs(t.pnl).toFixed(2);
+        const pnlClass = t.pnl >= 0 ? 'profit-pos' : 'profit-neg';
+        const balTxt = `$${balances[i].toFixed(2)}`;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+      <td class="mono">${i + 1}</td>
+      <td class="${t.date ? '' : 'muted'}">${t.date || '–'}</td>
+      <td><strong>${t.pair || '–'}</strong></td>
+      <td>${t.direction ? `<span class="badge badge-${t.direction.toLowerCase()}">${t.direction}</span>` : '<span class="badge badge-empty">–</span>'}</td>
+      <td><span class="badge badge-${t.result.toLowerCase()}">${t.result}</span></td>
+      <td class="${t.konfirmasi ? '' : 'muted'}">${t.konfirmasi || '–'}</td>
+      <td class="${pnlClass}">${pnlTxt}</td>
+      <td class="mono">${balTxt}</td>
+      <td class="${t.notes ? '' : 'muted'}" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;">${t.notes || '–'}</td>
+      <td><button class="btn btn-danger" onclick="deleteTrade(${t.id})">🗑</button></td>
+    `;
+        tbody.appendChild(tr);
+      });
+
+      if (trades.length === 0) {
+        tbody.innerHTML = `<tr class="empty-row"><td colspan="10" style="text-align:center;padding:30px;">Belum ada trade. Tambah trade pertama Anda! 🚀</td></tr>`;
+      }
+    }
+
+    // ─── Charts ───────────────────────────────────────────────────────────────────
+    let balChart, wlChart, profitChart;
+
+    const chartDefaults = {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } }
+    };
+    const gridColor = 'rgba(41,121,255,0.07)';
+    const tickColor = '#3d4f7c';
+
+    function renderCharts() {
+      const s = getStats();
+      const labels = trades.map((_, i) => `#${i + 1}`);
+
+      // Balance curve
+      if (balChart) balChart.destroy();
+      balChart = new Chart(document.getElementById('balanceChart'), {
+        type: 'line',
+        data: {
+          labels: ['Start', ...labels],
+          datasets: [{
+            data: [MODAL, ...s.balances],
+            borderColor: '#00e676',
+            backgroundColor: (ctx) => {
+              const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 200);
+              g.addColorStop(0, 'rgba(0,230,118,0.22)');
+              g.addColorStop(1, 'rgba(0,230,118,0)');
+              return g;
+            },
+            borderWidth: 2.5,
+            pointBackgroundColor: '#00e676',
+            pointRadius: 4,
+            tension: 0.4,
+            fill: true,
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          scales: {
+            x: { grid: { color: gridColor }, ticks: { color: tickColor } },
+            y: { grid: { color: gridColor }, ticks: { color: tickColor, callback: v => `$${v}` } }
+          }
+        }
+      });
+
+      // Win vs Loss pie
+      if (wlChart) wlChart.destroy();
+      wlChart = new Chart(document.getElementById('winlossChart'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Win', 'Loss'],
+          datasets: [{
+            data: [s.wins || 0, s.losses || 0],
+            backgroundColor: ['rgba(0,230,118,0.85)', 'rgba(255,61,113,0.85)'],
+            borderColor: ['#00e676', '#ff3d71'],
+            borderWidth: 2,
+            hoverOffset: 8,
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          plugins: {
+            legend: { display: true, position: 'bottom', labels: { color: '#7986cb', padding: 14, font: { size: 12 } } }
+          },
+          cutout: '65%'
+        }
+      });
+
+      // Profit per trade bar
+      if (profitChart) profitChart.destroy();
+      profitChart = new Chart(document.getElementById('profitChart'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            data: trades.map(t => t.pnl),
+            backgroundColor: trades.map(t => t.pnl >= 0 ? 'rgba(0,230,118,0.7)' : 'rgba(255,61,113,0.7)'),
+            borderColor: trades.map(t => t.pnl >= 0 ? '#00e676' : '#ff3d71'),
+            borderWidth: 1.5,
+            borderRadius: 6,
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          scales: {
+            x: { grid: { color: gridColor }, ticks: { color: tickColor } },
+            y: { grid: { color: gridColor }, ticks: { color: tickColor, callback: v => `$${v}` } }
+          }
+        }
+      });
+    }
+
+    // ─── Add trade ────────────────────────────────────────────────────────────────
+    function addTrade() {
+      const dateVal = document.getElementById('f-date').value;
+      const pairVal = document.getElementById('f-pair').value;
+      const dirVal = document.getElementById('f-direction').value;
+      const resVal = document.getElementById('f-result').value;
+      const pnlVal = document.getElementById('f-pnl').value;
+      const konfVal = getKonfirmasiChecked();
+      const notesVal = document.getElementById('f-notes').value;
+
+      if (!dateVal || !pairVal || !dirVal || !resVal || pnlVal === '' || !konfVal || !notesVal.trim()) {
+        showToast('⚠️ Semua form harus diisi atau diinput!', 'error');
+        return;
+      }
+
+      const pnlRaw = parseFloat(pnlVal);
+      if (isNaN(pnlRaw)) { showToast('⚠️ Masukkan nilai Profit / Loss yang valid!', 'error'); return; }
+      if (trades.length >= MAX_ENTRY) { showToast('⚠️ Sudah mencapai batas 50 entry!', 'error'); return; }
+
+      const trade = {
+        id: nextId++,
+        date: dateVal,
+        pair: pairVal,
+        direction: dirVal,
+        result: resVal,
+        konfirmasi: konfVal,
+        pnl: pnlRaw,
+        notes: notesVal,
+      };
+
+      trades.push(trade);
+      save();
+      refresh();
+      resetForm();
+      showToast('✅ Trade berhasil ditambahkan!');
+    }
+
+    function deleteTrade(id) {
+      trades = trades.filter(t => t.id !== id);
+      save(); refresh();
+      showToast('🗑 Trade dihapus.', 'warn');
+    }
+
+    function getKonfirmasiChecked() {
+      const boxes = document.querySelectorAll('#konfirmasi-group input[type="checkbox"]');
+      return Array.from(boxes).filter(b => b.checked).map(b => b.value).join(', ');
+    }
+
+    function resetForm() {
+      ['f-date', 'f-pnl', 'f-notes'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('f-pair').value = 'XAUUSD';
+      document.getElementById('f-direction').value = 'Buy';
+      document.getElementById('f-result').value = 'Win';
+      document.querySelectorAll('#konfirmasi-group input[type="checkbox"]').forEach(b => b.checked = false);
+    }
+
+    // ─── Toast ────────────────────────────────────────────────────────────────────
+    function showToast(msg, type = 'success') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.borderColor = type === 'error' ? 'var(--accent-red)' : type === 'warn' ? 'var(--accent-gold)' : 'var(--accent-green)';
+      t.style.color = type === 'error' ? 'var(--accent-red)' : type === 'warn' ? 'var(--accent-gold)' : 'var(--accent-green)';
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2800);
+    }
+
+    // ─── Refresh all ─────────────────────────────────────────────────────────────
+    function refresh() { renderStats(); renderTable(); renderCharts(); }
+
+    // ─── Set default date to today ─────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('f-date').value = today;
+      refresh();
+    });
+  </script>
+</body>
+
+</html>
